@@ -59,6 +59,7 @@ export type ForecastPoint = {
   closing: number;
   low: number;
   high: number;
+  bandHeight: number; // high - low, for stacked band rendering
 };
 
 export type ReconResult = {
@@ -370,6 +371,7 @@ export function reconcile(ds: Dataset): ReconResult {
       closing: round2(balance),
       low: round2(balance - spread),
       high: round2(balance + spread),
+      bandHeight: round2(2 * spread),
     });
   }
 

@@ -355,21 +355,22 @@ function Controller() {
                       borderRadius: 6,
                       fontSize: 12,
                     }}
-                    formatter={(v: number, n: string) => [usd(v), n]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="high"
-                    stroke="none"
-                    fill="url(#band)"
-                    isAnimationActive={false}
+                    formatter={(v: number, n: string) => [usd(v), n === "bandHeight" ? "band width" : n]}
                   />
                   <Area
                     type="monotone"
                     dataKey="low"
+                    stackId="band"
                     stroke="none"
-                    fill="var(--background)"
-                    fillOpacity={1}
+                    fill="none"
+                    isAnimationActive={false}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="bandHeight"
+                    stackId="band"
+                    stroke="none"
+                    fill="url(#band)"
                     isAnimationActive={false}
                   />
                   <Line
