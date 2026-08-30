@@ -12,6 +12,7 @@ import {
 } from "recharts";
 
 import { KpiTile } from "@/components/finance/KpiTile";
+import { ControllerQA } from "@/components/finance/ControllerQA";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -394,6 +395,17 @@ function Controller() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <ControllerQA
+        key={seed}
+        seed={seed}
+        context={{
+          scorecard: result.scorecard,
+          exceptions: result.exceptions,
+          forecast: result.forecast,
+          matches: result.matches,
+        }}
+      />
 
       <footer className="mt-10 border-t border-border pt-4 text-xs text-muted-foreground">
         Synthetic batch, deterministic seed {seed}. {ds.bank.length} bank lines · {ds.ledger.length}{" "}
