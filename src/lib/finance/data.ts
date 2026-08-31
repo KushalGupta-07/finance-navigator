@@ -42,7 +42,7 @@ export type Dataset = {
   openLedger: LedgerEntry[]; // ledger rows with no bank line at all
   openingBalance: number;
   asOf: string;
-  source?: "synthetic" | "imported";
+  source: "synthetic" | "imported";
 };
 
 const COUNTERPARTIES = [
@@ -243,5 +243,6 @@ export function generateDataset(seed = 20260828): Dataset {
     openLedger: unpaid,
     openingBalance: 412_500,
     asOf: iso(asOfT),
+    source: "synthetic",
   };
 }
