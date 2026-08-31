@@ -39,7 +39,6 @@ export function ControllerQA({ seed, context }: ControllerQAProps) {
   const { messages, sendMessage, status, error, stop, clearError } = useChat({
     id: `controller-qa-${seed}`,
     transport,
-    onError: clearError,
   });
   const isWorking = status === "submitted" || status === "streaming";
 
