@@ -329,24 +329,31 @@ function Controller() {
           <div className="panel px-5 py-4">
             <p className="rule-label">Coverage by injected scenario</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              The batch is generated with a known link map, so every distortion class can be scored
-              independently — including the traps the agent is supposed to leave alone.
+               {ds.source === "imported"
+                 ? "This imported batch has no ground-truth link map, so precision and recall are not scored. Review the match rationale and exception list instead."
+                 : "The batch is generated with a known link map, so every distortion class can be scored independently — including the traps the agent is supposed to leave alone."}
             </p>
-            <div className="mt-4 space-y-3">
-              {s.byScenario
-                .filter((r) => r.total > 0)
-                .map((r) => (
-                  <div key={r.scenario}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>{SCENARIO_LABEL[r.scenario]}</span>
-                      <span className="tabular text-muted-foreground">
-                        {r.caught}/{r.total}
-                      </span>
-                    </div>
-                    <Progress value={(r.caught / r.total) * 100} className="mt-1.5 h-1.5" />
-                  </div>
-                ))}
-            </div>
+             {ds.source === "imported" ? (
+               <div className="mt-4 border border-border bg-secondary/30 px-3 py-3 text-sm text-muted-foreground">
+                 Add a verified link map to the source file if you need measured precision and recall for a custom batch.
+               </div>
+             ) : (
+               <div className="mt-4 space-y-3">
+                 {s.byScenario
+                   .filter((r) => r.total > 0)
+                   .map((r) => (
+                     <div key={r.scenario}>
+                       <div className="flex items-center justify-between text-sm">
+                         <span>{SCENARIO_LABEL[r.scenario]}</span>
+                         <span className="tabular text-muted-foreground">
+                           {r.caught}/{r.total}
+                         </span>
+                       </div>
+                       <Progress value={(r.caught / r.total) * 100} className="mt-1.5 h-1.5" />
+                     </div>
+                   ))}
+               </div>
+             )}
           </div>
           <div className="panel px-5 py-4">
             <p className="rule-label">How the match was made</p>
@@ -473,9 +480,10 @@ function Controller() {
       />
 
       <footer className="mt-10 border-t border-border pt-4 text-xs text-muted-foreground">
-        Synthetic batch, deterministic seed {seed}. {ds.bank.length} bank lines · {ds.ledger.length}{" "}
+         {ds.source === "imported" ? "Imported CSV batch." : `Synthetic batch, deterministic seed ${seed}. `}{" "}
+         {ds.bank.length} bank lines · {ds.ledger.length}{" "}
         ledger rows · {result.matches.length} auto-posted · {result.exceptions.length} escalated ·{" "}
-        {s.incorrect} self-reported error{s.incorrect === 1 ? "" : "s"}.
+         {ds.source === "imported" ? "accuracy unscored without ground truth." : `${s.incorrect} self-reported error${s.incorrect === 1 ? "" : "s"}.`}
       </footer>
     </main>
   );
