@@ -67,6 +67,13 @@ const dateValue = (value: string) => {
   return Number.isNaN(time) ? null : new Date(time).toISOString().slice(0, 10);
 };
 
+const channelValue = (value: string): BankLine["channel"] => {
+  const channel = value.toUpperCase();
+  return ["ACH", "WIRE", "CARD", "CHECK"].includes(channel)
+    ? (channel as BankLine["channel"])
+    : "OTHER";
+};
+
 function rowType(row: CsvRow): "ledger" | "bank" | null {
   const explicit = first(row, "record_type", "source", "row_type", "dataset").toLowerCase();
   if (["ledger", "invoice", "bill", "book"].includes(explicit)) return "ledger";
@@ -145,7 +152,7 @@ export function parseFinanceCsv(text: string): Dataset {
       postedOn,
       description,
       amount: value,
-      channel: first(row, "channel", "method") || "OTHER",
+      channel: channelValue(first(row, "channel", "method")),
     });
     latestDate = latestDate > postedOn ? latestDate : postedOn;
   });
