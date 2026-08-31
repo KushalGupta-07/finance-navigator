@@ -268,12 +268,13 @@ export function reconcile(ds: Dataset): ReconResult {
   /* ---------- scoring against ground truth ---------- */
 
   const truthByBank = new Map(ds.truth.map((t) => [t.bankId, t]));
+  const hasGroundTruth = ds.truth.length > 0;
   let correct = 0;
   const falsePositives: Match[] = [];
   for (const m of matches) {
     const t = truthByBank.get(m.bankId);
     if (t && sameSet(t.ledgerIds, m.ledgerIds)) correct += 1;
-    else falsePositives.push(m);
+    else if (t) falsePositives.push(m);
   }
   const matchableTotal = ds.truth.filter((t) => t.ledgerIds.length > 0).length;
   const valueTotal = ds.bank.reduce((s, b) => s + Math.abs(b.amount), 0);
@@ -313,8 +314,8 @@ export function reconcile(ds: Dataset): ReconResult {
     matchRatePct: round2((matches.length / ds.bank.length) * 100),
     correct,
     incorrect: falsePositives.length,
-    precisionPct: matches.length ? round2((correct / matches.length) * 100) : 0,
-    recallPct: matchableTotal ? round2((correct / matchableTotal) * 100) : 0,
+    precisionPct: hasGroundTruth && matches.length ? round2((correct / matches.length) * 100) : 0,
+    recallPct: hasGroundTruth && matchableTotal ? round2((correct / matchableTotal) * 100) : 0,
     valueMatched: round2(valueMatched),
     valueTotal: round2(valueTotal),
     runtimeMs: Math.round(runtimeMs * 100) / 100,

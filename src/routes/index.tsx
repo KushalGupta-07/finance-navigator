@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Area,
   ComposedChart,
@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Download, FileSpreadsheet, Upload } from "lucide-react";
 
 import { KpiTile } from "@/components/finance/KpiTile";
 import { ControllerQA } from "@/components/finance/ControllerQA";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateDataset } from "@/lib/finance/data";
+import { CSV_TEMPLATE, parseFinanceCsv } from "@/lib/finance/import-csv";
 import { ledgerLabel, reconcile } from "@/lib/finance/reconcile";
 
 export const Route = createFileRoute("/")({
@@ -67,10 +69,13 @@ const REASON_TONE: Record<string, string> = {
 function Controller() {
   const [seed, setSeed] = useState(20260828);
   const [tab, setTab] = useState("matches");
+  const [importedDataset, setImportedDataset] = useState<ReturnType<typeof generateDataset> | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { ds, result } = useMemo(() => {
-    const dataset = generateDataset(seed);
+    const dataset = importedDataset ?? generateDataset(seed);
     return { ds: dataset, result: reconcile(dataset) };
-  }, [seed]);
+  }, [importedDataset, seed]);
 
   const s = result.scorecard;
   const bankById = useMemo(() => new Map(ds.bank.map((b) => [b.id, b])), [ds]);
@@ -90,13 +95,73 @@ function Controller() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="rule-label">Book as of</p>
-            <p className="tabular text-sm">{ds.asOf}</p>
-          </div>
-          <Button onClick={() => setSeed((v) => v + 1)}>Run new batch</Button>
+           <div className="text-right">
+             <p className="rule-label">{ds.source === "imported" ? "Imported as of" : "Book as of"}</p>
+             <p className="tabular text-sm">{ds.asOf}</p>
+           </div>
+           <input
+             ref={fileInputRef}
+             type="file"
+             accept=".csv,text/csv"
+             className="sr-only"
+             onChange={async (event) => {
+               const file = event.target.files?.[0];
+               event.target.value = "";
+               if (!file) return;
+               try {
+                 const dataset = parseFinanceCsv(await file.text());
+                 setImportedDataset(dataset);
+                 setImportError(null);
+                 setTab("matches");
+               } catch (error) {
+                 setImportError(error instanceof Error ? error.message : "Could not read this CSV file.");
+               }
+             }}
+           />
+           <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+             <Upload aria-hidden="true" />
+             Import CSV
+           </Button>
+           <Button
+             onClick={() => {
+               setImportedDataset(null);
+               setImportError(null);
+               setSeed((v) => v + 1);
+             }}
+           >
+             Run new batch
+           </Button>
         </div>
       </header>
+
+       <section className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-border bg-card/50 px-4 py-3">
+         <div className="flex items-start gap-3">
+           <FileSpreadsheet className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+           <div>
+             <p className="text-sm font-medium">{ds.source === "imported" ? "Custom CSV loaded" : "Bring your own finance data"}</p>
+             <p className="mt-0.5 text-xs text-muted-foreground">
+               Use one CSV with ledger and bank rows. Include record_type, amount, dates, and either counterparty or description.
+             </p>
+             {importError ? <p className="mt-1 text-xs text-negative">{importError}</p> : null}
+           </div>
+         </div>
+         <Button
+           variant="ghost"
+           size="sm"
+           onClick={() => {
+             const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8" });
+             const url = URL.createObjectURL(blob);
+             const link = document.createElement("a");
+             link.href = url;
+             link.download = "finance-controller-template.csv";
+             link.click();
+             URL.revokeObjectURL(url);
+           }}
+         >
+           <Download aria-hidden="true" />
+           Download template
+         </Button>
+       </section>
 
       <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-6">
         <KpiTile
@@ -107,14 +172,14 @@ function Controller() {
         />
         <KpiTile
           label="Precision"
-          value={`${s.precisionPct.toFixed(1)}%`}
-          sub={`${s.incorrect} wrong posting${s.incorrect === 1 ? "" : "s"}`}
-          tone={s.incorrect === 0 ? "positive" : "warning"}
+           value={ds.source === "imported" ? "—" : `${s.precisionPct.toFixed(1)}%`}
+           sub={ds.source === "imported" ? "ground truth not provided" : `${s.incorrect} wrong posting${s.incorrect === 1 ? "" : "s"}`}
+           tone={ds.source === "imported" ? "default" : s.incorrect === 0 ? "positive" : "warning"}
         />
         <KpiTile
           label="Recall"
-          value={`${s.recallPct.toFixed(1)}%`}
-          sub="of truly matchable lines"
+           value={ds.source === "imported" ? "—" : `${s.recallPct.toFixed(1)}%`}
+           sub={ds.source === "imported" ? "ground truth not provided" : "of truly matchable lines"}
         />
         <KpiTile
           label="Exceptions"
@@ -264,24 +329,31 @@ function Controller() {
           <div className="panel px-5 py-4">
             <p className="rule-label">Coverage by injected scenario</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              The batch is generated with a known link map, so every distortion class can be scored
-              independently — including the traps the agent is supposed to leave alone.
+               {ds.source === "imported"
+                 ? "This imported batch has no ground-truth link map, so precision and recall are not scored. Review the match rationale and exception list instead."
+                 : "The batch is generated with a known link map, so every distortion class can be scored independently — including the traps the agent is supposed to leave alone."}
             </p>
-            <div className="mt-4 space-y-3">
-              {s.byScenario
-                .filter((r) => r.total > 0)
-                .map((r) => (
-                  <div key={r.scenario}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>{SCENARIO_LABEL[r.scenario]}</span>
-                      <span className="tabular text-muted-foreground">
-                        {r.caught}/{r.total}
-                      </span>
-                    </div>
-                    <Progress value={(r.caught / r.total) * 100} className="mt-1.5 h-1.5" />
-                  </div>
-                ))}
-            </div>
+             {ds.source === "imported" ? (
+               <div className="mt-4 border border-border bg-secondary/30 px-3 py-3 text-sm text-muted-foreground">
+                 Add a verified link map to the source file if you need measured precision and recall for a custom batch.
+               </div>
+             ) : (
+               <div className="mt-4 space-y-3">
+                 {s.byScenario
+                   .filter((r) => r.total > 0)
+                   .map((r) => (
+                     <div key={r.scenario}>
+                       <div className="flex items-center justify-between text-sm">
+                         <span>{SCENARIO_LABEL[r.scenario]}</span>
+                         <span className="tabular text-muted-foreground">
+                           {r.caught}/{r.total}
+                         </span>
+                       </div>
+                       <Progress value={(r.caught / r.total) * 100} className="mt-1.5 h-1.5" />
+                     </div>
+                   ))}
+               </div>
+             )}
           </div>
           <div className="panel px-5 py-4">
             <p className="rule-label">How the match was made</p>
@@ -408,9 +480,10 @@ function Controller() {
       />
 
       <footer className="mt-10 border-t border-border pt-4 text-xs text-muted-foreground">
-        Synthetic batch, deterministic seed {seed}. {ds.bank.length} bank lines · {ds.ledger.length}{" "}
+         {ds.source === "imported" ? "Imported CSV batch." : `Synthetic batch, deterministic seed ${seed}. `}{" "}
+         {ds.bank.length} bank lines · {ds.ledger.length}{" "}
         ledger rows · {result.matches.length} auto-posted · {result.exceptions.length} escalated ·{" "}
-        {s.incorrect} self-reported error{s.incorrect === 1 ? "" : "s"}.
+         {ds.source === "imported" ? "accuracy unscored without ground truth." : `${s.incorrect} self-reported error${s.incorrect === 1 ? "" : "s"}.`}
       </footer>
     </main>
   );

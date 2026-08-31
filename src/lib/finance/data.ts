@@ -11,7 +11,7 @@ export type LedgerEntry = {
   issuedOn: string; // ISO date
   dueOn: string;
   taxCode: string;
-  currency: "USD";
+  currency: string;
 };
 
 export type BankLine = {
@@ -19,7 +19,7 @@ export type BankLine = {
   postedOn: string;
   description: string;
   amount: number;
-  channel: "ACH" | "WIRE" | "CARD" | "CHECK";
+  channel: "ACH" | "WIRE" | "CARD" | "CHECK" | "OTHER";
 };
 
 export type TruthLink = {
@@ -42,6 +42,7 @@ export type Dataset = {
   openLedger: LedgerEntry[]; // ledger rows with no bank line at all
   openingBalance: number;
   asOf: string;
+  source: "synthetic" | "imported";
 };
 
 const COUNTERPARTIES = [
@@ -242,5 +243,6 @@ export function generateDataset(seed = 20260828): Dataset {
     openLedger: unpaid,
     openingBalance: 412_500,
     asOf: iso(asOfT),
+    source: "synthetic",
   };
 }
