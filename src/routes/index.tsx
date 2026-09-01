@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   ComposedChart,
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { generateDataset } from "@/lib/finance/data";
+import { generateDataset, todayIso } from "@/lib/finance/data";
 import { CSV_TEMPLATE, parseFinanceCsv } from "@/lib/finance/import-csv";
 import { ledgerLabel, reconcile } from "@/lib/finance/reconcile";
 
