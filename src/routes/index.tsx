@@ -109,10 +109,32 @@ function Controller() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-           <div className="text-right">
-             <p className="rule-label">{ds.source === "imported" ? "Imported as of" : "Book as of"}</p>
-             <p className="tabular text-sm">{ds.asOf}</p>
-           </div>
+            <div className="text-right">
+              <p className="rule-label">{ds.source === "imported" ? "Imported as of" : "Books as of"}</p>
+              {ds.source === "imported" ? (
+                <p className="tabular text-sm">{ds.asOf}</p>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={asOf}
+                    max={today}
+                    onChange={(e) => setPinnedAsOf(e.target.value || null)}
+                    className="tabular rounded-sm border border-border bg-background px-2 py-1 text-sm [color-scheme:dark]"
+                    aria-label="Books close date"
+                  />
+                  {pinnedAsOf && (
+                    <button
+                      type="button"
+                      onClick={() => setPinnedAsOf(null)}
+                      className="text-xs text-accent hover:underline"
+                    >
+                      today
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
            <input
              ref={fileInputRef}
              type="file"
