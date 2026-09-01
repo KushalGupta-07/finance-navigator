@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   ComposedChart,
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { generateDataset } from "@/lib/finance/data";
+import { generateDataset, todayIso } from "@/lib/finance/data";
 import { CSV_TEMPLATE, parseFinanceCsv } from "@/lib/finance/import-csv";
 import { ledgerLabel, reconcile } from "@/lib/finance/reconcile";
 
@@ -72,10 +72,24 @@ function Controller() {
   const [importedDataset, setImportedDataset] = useState<ReturnType<typeof generateDataset> | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Books close date tracks the real calendar; rolls over automatically at midnight (UTC)
+  // unless the user pins a custom close date.
+  const [today, setToday] = useState(todayIso);
+  const [pinnedAsOf, setPinnedAsOf] = useState<string | null>(null);
+  const asOf = pinnedAsOf ?? today;
+  useEffect(() => {
+    const tick = () => setToday(todayIso());
+    const interval = setInterval(tick, 60_000);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", tick);
+    };
+  }, []);
   const { ds, result } = useMemo(() => {
-    const dataset = importedDataset ?? generateDataset(seed);
+    const dataset = importedDataset ?? generateDataset(seed, asOf);
     return { ds: dataset, result: reconcile(dataset) };
-  }, [importedDataset, seed]);
+  }, [importedDataset, seed, asOf]);
 
   const s = result.scorecard;
   const bankById = useMemo(() => new Map(ds.bank.map((b) => [b.id, b])), [ds]);
@@ -95,10 +109,32 @@ function Controller() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-           <div className="text-right">
-             <p className="rule-label">{ds.source === "imported" ? "Imported as of" : "Book as of"}</p>
-             <p className="tabular text-sm">{ds.asOf}</p>
-           </div>
+            <div className="text-right">
+              <p className="rule-label">{ds.source === "imported" ? "Imported as of" : "Books as of"}</p>
+              {ds.source === "imported" ? (
+                <p className="tabular text-sm">{ds.asOf}</p>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={asOf}
+                    max={today}
+                    onChange={(e) => setPinnedAsOf(e.target.value || null)}
+                    className="tabular rounded-sm border border-border bg-background px-2 py-1 text-sm [color-scheme:dark]"
+                    aria-label="Books close date"
+                  />
+                  {pinnedAsOf && (
+                    <button
+                      type="button"
+                      onClick={() => setPinnedAsOf(null)}
+                      className="text-xs text-accent hover:underline"
+                    >
+                      today
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
            <input
              ref={fileInputRef}
              type="file"

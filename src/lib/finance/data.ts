@@ -96,9 +96,12 @@ function bankDescription(name: string, rnd: () => number, ref: string) {
   return variants[Math.floor(rnd() * variants.length)]!;
 }
 
-export function generateDataset(seed = 20260828): Dataset {
+/** Today's date in UTC (YYYY-MM-DD) — the default books close date. */
+export const todayIso = () => new Date().toISOString().slice(0, 10);
+
+export function generateDataset(seed = 20260828, asOf: string = todayIso()): Dataset {
   const rnd = mulberry32(seed);
-  const asOfT = Date.UTC(2026, 7, 28);
+  const asOfT = Date.parse(`${asOf}T00:00:00Z`);
   const ledger: LedgerEntry[] = [];
   const bank: BankLine[] = [];
   const truth: TruthLink[] = [];
