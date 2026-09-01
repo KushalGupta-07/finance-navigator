@@ -15,14 +15,22 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const body = (await request.json()) as ChatRequestBody;
+        let body: ChatRequestBody;
+        try {
+          body = (await request.json()) as ChatRequestBody;
+        } catch {
+          return new Response("Invalid chat request", { status: 400 });
+        }
         if (!Array.isArray(body.messages)) {
           return new Response("Messages are required", { status: 400 });
         }
 
         const key = process.env["LOVABLE_API_KEY"];
         if (!key) {
-          return new Response("Lovable AI is not configured", { status: 500 });
+          return new Response(
+            "Lovable AI is not configured for this local server. Add LOVABLE_API_KEY to .env.local and restart the dev server.",
+            { status: 503 },
+          );
         }
 
         const controllerContext =

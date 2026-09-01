@@ -21,6 +21,19 @@ npm i
 npm run dev
 ```
 
+### Local Q&A agent
+
+The finance Q&A agent calls Lovable AI from the server, so its key must never be
+placed in browser code. Before starting the local dev server, create a
+`.env.local` file in the project root and set the server-only key:
+
+```sh
+LOVABLE_API_KEY=your-lovable-ai-key
+```
+
+Restart `npm run dev` after adding or changing the key. If the key is missing,
+the Q&A panel will show a configuration message rather than silently failing.
+
 ## Built with
 
 - TanStack Start
