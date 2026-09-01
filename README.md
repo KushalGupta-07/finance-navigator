@@ -1,42 +1,93 @@
-# Welcome to your Lovable project
+# Finance Navigator
 
-This project was built with [Lovable](https://lovable.dev).
+Finance Navigator is an AI-assisted finance control dashboard for reconciliation, exception handling, and cash forecasting. It simulates a finance operations workflow where bank transactions are matched against ledger entries, mismatches are surfaced for review, and the system provides a self-scoring accuracy snapshot.
 
-## Build with Lovable
+## What this project does
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+- Reconciles bank activity against ledger entries using a seeded finance dataset
+- Scores match quality with auto-match rate, precision, recall, and exception counts
+- Shows matched transactions, unresolved exceptions, and a cash forecast view
+- Supports importing a custom CSV dataset for a real reconciliation batch
+- Includes a built-in finance Q&A agent that answers questions using the current controller snapshot
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Key features
 
-## Development
+- AI Finance Controller dashboard
+- Automated bank-to-ledger matching
+- Exception tracking for ambiguous, duplicate, or unmatched entries
+- Cash position and 8-week forecast analysis
+- CSV template download and import workflow
+- Server-side AI chat endpoint using a Lovable API key
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Tech stack
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+- React + TypeScript
+- Vite
+- TanStack Start / TanStack Router
+- Tailwind CSS
+- Recharts for financial charts
+- AI SDK for the Q&A assistant
+
+## Project structure
+
+```bash
+finance-navigator/
+├── src/
+│   ├── components/
+│   ├── lib/
+│   ├── routes/
+│   ├── router.tsx
+│   └── routeTree.gen.ts
+├── public/
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+├── README.md
+└── AGENTS.md
+```
+
+## Getting started
+
+Prerequisites:
+
+- Node.js 18+ or later
+- npm
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the app locally:
+
+```bash
 npm run dev
 ```
 
-### Local Q&A agent
+Then open the local URL shown in the terminal in your browser.
 
-The finance Q&A agent calls Lovable AI from the server, so its key must never be
-placed in browser code. Before starting the local dev server, create a
-`.env.local` file in the project root and set the server-only key:
+## Local AI configuration
 
-```sh
+The finance Q&A agent calls Lovable AI from the server, so the API key must remain in a server-only environment variable and never be placed in browser code.
+
+Create a `.env.local` file in the project root:
+
+```bash
 LOVABLE_API_KEY=your-lovable-ai-key
 ```
 
-Restart `npm run dev` after adding or changing the key. If the key is missing,
-the Q&A panel will show a configuration message rather than silently failing.
+Restart the dev server after adding or changing the key. If the key is missing, the Q&A panel will display a configuration message instead of failing silently.
 
-## Built with
+## Useful scripts
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+```bash
+npm run dev      # start the development server
+npm run build    # create a production build
+npm run lint     # run ESLint checks
+npm run format   # format the codebase with Prettier
+```
+
+## Notes
+
+This app is designed as a finance operations mockup and demonstrates an AI-assisted reconciliation workflow rather than a production banking system. It is best suited for demos, prototypes, or educational exploration of AI-enabled finance automation.
