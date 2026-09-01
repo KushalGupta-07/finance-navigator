@@ -72,13 +72,13 @@ function Controller() {
   const [importedDataset, setImportedDataset] = useState<ReturnType<typeof generateDataset> | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Books close date tracks the real calendar; rolls over automatically at midnight (UTC).
-  const [asOf, setAsOf] = useState(todayIso);
+  // Books close date tracks the real calendar; rolls over automatically at midnight (UTC)
+  // unless the user pins a custom close date.
+  const [today, setToday] = useState(todayIso);
+  const [pinnedAsOf, setPinnedAsOf] = useState<string | null>(null);
+  const asOf = pinnedAsOf ?? today;
   useEffect(() => {
-    const tick = () => setAsOf((current) => {
-      const today = todayIso();
-      return current < today ? today : current;
-    });
+    const tick = () => setToday(todayIso());
     const interval = setInterval(tick, 60_000);
     window.addEventListener("focus", tick);
     return () => {
