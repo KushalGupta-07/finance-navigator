@@ -72,10 +72,24 @@ function Controller() {
   const [importedDataset, setImportedDataset] = useState<ReturnType<typeof generateDataset> | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Books close date tracks the real calendar; rolls over automatically at midnight (UTC).
+  const [asOf, setAsOf] = useState(todayIso);
+  useEffect(() => {
+    const tick = () => setAsOf((current) => {
+      const today = todayIso();
+      return current < today ? today : current;
+    });
+    const interval = setInterval(tick, 60_000);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", tick);
+    };
+  }, []);
   const { ds, result } = useMemo(() => {
-    const dataset = importedDataset ?? generateDataset(seed);
+    const dataset = importedDataset ?? generateDataset(seed, asOf);
     return { ds: dataset, result: reconcile(dataset) };
-  }, [importedDataset, seed]);
+  }, [importedDataset, seed, asOf]);
 
   const s = result.scorecard;
   const bankById = useMemo(() => new Map(ds.bank.map((b) => [b.id, b])), [ds]);
