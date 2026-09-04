@@ -208,5 +208,4 @@ export function parseFinanceCsv(text: string): Dataset {
 export const CSV_TEMPLATE =
   "record_type,id,kind,counterparty,memo,amount,issued_on,due_on,tax_code,currency,posted_on,description,channel,expected_ledger_ids,scenario\n" +
   "ledger,L-1,AR,Example Customer,Invoice 1001,1250.00,2026-08-01,2026-08-31,VAT-20,USD,,,,,\n" +
-  "bank,B-1,,,,1250.00,,,,,2026-08-15,EXAMPLE CUSTOMER PMT 1001,ACH,L-1,clean\n" +
-  "# expected_ledger_ids is optional: list the ledger ids a bank line should settle (L-1|L-2), or \"none\" for a known unmatched line. Supplying it enables the scored accuracy report.\n";
+  "bank,B-1,,,,1250.00,,,,,2026-08-15,EXAMPLE CUSTOMER PMT 1001,ACH,L-1,clean\n";
