@@ -208,14 +208,14 @@ function Controller() {
         />
         <KpiTile
           label="Precision"
-           value={ds.source === "imported" ? "—" : `${s.precisionPct.toFixed(1)}%`}
-           sub={ds.source === "imported" ? "ground truth not provided" : `${s.incorrect} wrong posting${s.incorrect === 1 ? "" : "s"}`}
-           tone={ds.source === "imported" ? "default" : s.incorrect === 0 ? "positive" : "warning"}
+           value={ds.truth.length === 0 ? "—" : `${s.precisionPct.toFixed(1)}%`}
+           sub={ds.truth.length === 0 ? "ground truth not provided" : `${s.incorrect} wrong posting${s.incorrect === 1 ? "" : "s"}`}
+           tone={ds.truth.length === 0 ? "default" : s.incorrect === 0 ? "positive" : "warning"}
         />
         <KpiTile
           label="Recall"
-           value={ds.source === "imported" ? "—" : `${s.recallPct.toFixed(1)}%`}
-           sub={ds.source === "imported" ? "ground truth not provided" : "of truly matchable lines"}
+           value={ds.truth.length === 0 ? "—" : `${s.recallPct.toFixed(1)}%`}
+           sub={ds.truth.length === 0 ? "ground truth not provided" : "of truly matchable lines"}
         />
         <KpiTile
           label="Exceptions"
@@ -365,13 +365,15 @@ function Controller() {
           <div className="panel px-5 py-4">
             <p className="rule-label">Coverage by injected scenario</p>
             <p className="mt-1 text-xs text-muted-foreground">
-               {ds.source === "imported"
+               {ds.truth.length === 0
                  ? "This imported batch has no ground-truth link map, so precision and recall are not scored. Review the match rationale and exception list instead."
-                 : "The batch is generated with a known link map, so every distortion class can be scored independently — including the traps the agent is supposed to leave alone."}
+                 : ds.source === "imported"
+                   ? "Scored against the expected_ledger_ids link map supplied in the CSV — precision, recall, and wrong postings are measured, not assumed."
+                   : "The batch is generated with a known link map, so every distortion class can be scored independently — including the traps the agent is supposed to leave alone."}
             </p>
-             {ds.source === "imported" ? (
+             {ds.truth.length === 0 ? (
                <div className="mt-4 border border-border bg-secondary/30 px-3 py-3 text-sm text-muted-foreground">
-                 Add a verified link map to the source file if you need measured precision and recall for a custom batch.
+                 Add an <span className="tabular text-foreground">expected_ledger_ids</span> column to your CSV (e.g. L-1|L-2, or "none" for a known unmatched bank line) to enable a scored accuracy report with precision and recall.
                </div>
              ) : (
                <div className="mt-4 space-y-3">
@@ -519,7 +521,7 @@ function Controller() {
          {ds.source === "imported" ? "Imported CSV batch." : `Synthetic batch, deterministic seed ${seed}. `}{" "}
          {ds.bank.length} bank lines · {ds.ledger.length}{" "}
         ledger rows · {result.matches.length} auto-posted · {result.exceptions.length} escalated ·{" "}
-         {ds.source === "imported" ? "accuracy unscored without ground truth." : `${s.incorrect} self-reported error${s.incorrect === 1 ? "" : "s"}.`}
+         {ds.truth.length === 0 ? "accuracy unscored without ground truth." : `${s.incorrect} self-reported error${s.incorrect === 1 ? "" : "s"}.`}
       </footer>
     </main>
   );
