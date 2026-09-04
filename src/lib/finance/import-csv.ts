@@ -1,4 +1,4 @@
-import type { BankLine, Dataset, LedgerEntry } from "./data";
+import type { BankLine, Dataset, LedgerEntry, TruthLink } from "./data";
 
 type CsvRow = Record<string, string>;
 
@@ -96,6 +96,7 @@ export function parseFinanceCsv(text: string): Dataset {
 
   const ledger: LedgerEntry[] = [];
   const bank: BankLine[] = [];
+  const truth: TruthLink[] = [];
   const errors: string[] = [];
   let openingBalance = 0;
   let latestDate = "";
@@ -154,6 +155,29 @@ export function parseFinanceCsv(text: string): Dataset {
       amount: value,
       channel: channelValue(first(row, "channel", "method")),
     });
+
+    // Optional ground truth: expected_ledger_ids lists the ledger rows this bank
+    // line should settle ("L-1|L-2", or "none" for a known unmatched line). When
+    // provided, the accuracy report scores precision and recall against it.
+    const expected = first(row, "expected_ledger_ids", "expected", "truth", "matches");
+    if (expected) {
+      const scenarioRaw = first(row, "scenario").toLowerCase();
+      const scenarios: TruthLink["scenario"][] = [
+        "clean",
+        "date_drift",
+        "bank_fee",
+        "fx_rounding",
+        "batch_payment",
+        "duplicate_payment",
+        "unknown_deposit",
+      ];
+      const scenario = scenarios.find((s) => s === scenarioRaw) ?? "clean";
+      const ledgerIds =
+        expected.toLowerCase() === "none"
+          ? []
+          : expected.split(/[|;]/).map((v) => v.trim()).filter(Boolean);
+      truth.push({ bankId: id, ledgerIds, scenario });
+    }
     latestDate = latestDate > postedOn ? latestDate : postedOn;
   });
 
@@ -164,10 +188,16 @@ export function parseFinanceCsv(text: string): Dataset {
     throw new Error("The CSV must include at least one ledger row and one bank row.");
   }
 
+  const knownLedgerIds = new Set(ledger.map((l) => l.id));
+  const unknownIds = truth.flatMap((t) => t.ledgerIds).filter((id) => !knownLedgerIds.has(id));
+  if (unknownIds.length > 0) {
+    throw new Error(`expected_ledger_ids refers to unknown ledger rows: ${[...new Set(unknownIds)].slice(0, 4).join(", ")}.`);
+  }
+
   return {
     ledger,
     bank: bank.sort((a, b) => a.postedOn.localeCompare(b.postedOn)),
-    truth: [],
+    truth,
     openLedger: ledger,
     openingBalance,
     asOf: latestDate || new Date().toISOString().slice(0, 10),
@@ -176,6 +206,7 @@ export function parseFinanceCsv(text: string): Dataset {
 }
 
 export const CSV_TEMPLATE =
-  "record_type,id,kind,counterparty,memo,amount,issued_on,due_on,tax_code,currency,posted_on,description,channel\n" +
-  "ledger,L-1,AR,Example Customer,Invoice 1001,1250.00,2026-08-01,2026-08-31,VAT-20,USD,,,\n" +
-  "bank,B-1,,,,1250.00,,,,,2026-08-15,EXAMPLE CUSTOMER PMT 1001,ACH\n";
+  "record_type,id,kind,counterparty,memo,amount,issued_on,due_on,tax_code,currency,posted_on,description,channel,expected_ledger_ids,scenario\n" +
+  "ledger,L-1,AR,Example Customer,Invoice 1001,1250.00,2026-08-01,2026-08-31,VAT-20,USD,,,,,\n" +
+  "bank,B-1,,,,1250.00,,,,,2026-08-15,EXAMPLE CUSTOMER PMT 1001,ACH,L-1,clean\n" +
+  "# expected_ledger_ids is optional: list the ledger ids a bank line should settle (L-1|L-2), or \"none\" for a known unmatched line. Supplying it enables the scored accuracy report.\n";
